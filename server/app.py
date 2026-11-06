@@ -28,6 +28,13 @@ from urllib.parse import urlsplit, parse_qs, unquote
 ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(os.environ.get('CARVIA_DATA_DIR', ROOT / 'server' / 'data')).resolve()
 DB = DATA / 'carvia.sqlite3'
+PUBLIC_ORIGIN = os.environ.get('CARVIA_PUBLIC_ORIGIN', os.environ.get('RENDER_EXTERNAL_URL', '')).rstrip('/')
+PUBLIC_URL = urlsplit(PUBLIC_ORIGIN)
+if PUBLIC_ORIGIN and (PUBLIC_URL.scheme != 'https' or not PUBLIC_URL.hostname
+                      or PUBLIC_URL.path or PUBLIC_URL.query or PUBLIC_URL.fragment
+                      or PUBLIC_URL.username is not None):
+    raise SystemExit('CARVIA_PUBLIC_ORIGIN phải là URL HTTPS chỉ gồm tên miền.')
+COOKIE_SECURE = '; Secure' if PUBLIC_ORIGIN else ''
 POLICY = json.loads((ROOT / 'server/policy.json').read_text(encoding='utf-8'))
 CATALOG = json.loads((ROOT / 'server/catalog.json').read_text(encoding='utf-8'))
 CATALOG_MAP = {c['id']: c for c in CATALOG}
@@ -415,6 +422,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def check_host(self):
         host = self.headers.get('Host','')
+        if PUBLIC_ORIGIN:
+            need(host == PUBLIC_URL.netloc, 'Tên miền không hợp lệ.', 403)
+            return
         need(host in (f'localhost:{self.server.server_port}',f'127.0.0.1:{self.server.server_port}'), 'Máy chủ chỉ phục vụ trên localhost.', 403)
 
     def do_POST(self):
@@ -422,7 +432,7 @@ class Handler(BaseHTTPRequestHandler):
             self.check_host()
             need(self.headers.get('X-Carvia-Request') == '1', 'Yêu cầu không hợp lệ.',403)
             origin = self.headers.get('Origin')
-            need(not origin or origin == 'http://'+self.headers.get('Host'), 'Nguồn yêu cầu không hợp lệ.',403)
+            need(not origin or origin == (PUBLIC_ORIGIN or 'http://' + self.headers.get('Host')), 'Nguồn yêu cầu không hợp lệ.',403)
             need(self.headers.get('Content-Type','').startswith('application/json'), 'Yêu cầu phải là JSON.',415)
             length = int(self.headers.get('Content-Length','0'))
             need(0 < length <= 20000, 'Yêu cầu quá lớn hoặc rỗng.',413)
@@ -513,11 +523,11 @@ class Handler(BaseHTTPRequestHandler):
             db.execute('DELETE FROM login_limits WHERE key=?',(key,))
             token, csrf = secrets.token_urlsafe(32),secrets.token_urlsafe(32)
             db.execute('INSERT INTO sessions VALUES(?,?,?,?)',(hashlib.sha256(token.encode()).hexdigest(),user['id'],csrf,time.time()+8*3600))
-            return {'ok':True},f'carvia_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800'
+            return {'ok':True},f'carvia_session={token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800'+COOKIE_SECURE
         user = self.require_user(db,csrf=True)
         if path == '/api/logout':
             db.execute('DELETE FROM sessions WHERE user_id=? AND csrf=?',(user['id'],user['csrf']))
-            return {'ok':True},'carvia_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'
+            return {'ok':True},'carvia_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0'+COOKIE_SECURE
         if path == '/api/draft':
             old = db.execute('SELECT * FROM drafts WHERE owner=?',(user['id'],)).fetchone()
             need(data.get('version') == (old['version'] if old else 0), 'Bản nháp đã đổi ở cửa sổ khác. Tải lại trước khi sửa.',409)
@@ -648,7 +658,7 @@ if __name__ == '__main__':
         if hasattr(stream, 'reconfigure'):
             stream.reconfigure(encoding='utf-8', errors='replace')
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--port',type=int,default=8000)
+    parser.add_argument('--port',type=int,default=int(os.environ.get('PORT', '8000')))
     parser.add_argument('--create-admin',action='store_true')
     args = parser.parse_args()
     init_db()
@@ -658,5 +668,7 @@ if __name__ == '__main__':
         except Problem as e:
             raise SystemExit(e.message)
     else:
-        print(f'CARVIA demo: http://localhost:{args.port} — Ctrl+C để dừng.')
-        ThreadingHTTPServer(('127.0.0.1',args.port),Handler).serve_forever()
+        origin = PUBLIC_ORIGIN or f'http://localhost:{args.port}'
+        print(f'CARVIA demo: {origin} — Ctrl+C để dừng.', flush=True)
+        bind = '0.0.0.0' if PUBLIC_ORIGIN else '127.0.0.1'
+        ThreadingHTTPServer((bind,args.port),Handler).serve_forever()
