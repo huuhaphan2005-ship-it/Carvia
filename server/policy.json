@@ -1,0 +1,34 @@
+{
+  "version": "carvia-rental-v4",
+  "demo": true,
+  "currency": "VND",
+  "timezone": "Asia/Ho_Chi_Minh",
+  "lead_hours": 2,
+  "buffer_hours": 2,
+  "minimum_hours": 24,
+  "maximum_days": 90,
+  "quote_minutes": 30,
+  "deposit_percent": 30,
+  "security_deposit": 3000000,
+  "included_km_per_day": 250,
+  "extra_km_rate": 3000,
+  "late_hour_rate": 100000,
+  "late_grace_minutes": 30,
+  "delivery_fee_each_way": 150000,
+  "promo_code": "CARVIA10",
+  "promo_percent": 10,
+  "promo_cap": 200000,
+  "cancellation": "Bạn có thể hủy trong Đơn thuê của tôi trước giờ nhận xe. Đơn thanh toán khi nhận xe không thu phí hủy trước giờ nhận. Nếu cần đổi lịch, hãy hủy và đặt lại theo lịch trống. Sau giờ nhận hoặc khi đang thuê, liên hệ đơn vị cho thuê để thống nhất phương án; trả sớm không tự động làm giảm tiền thuê đã xác nhận.",
+  "fuel": "Nhận và trả xe cùng mức nhiên liệu ghi trên biên bản. Nhiên liệu thiếu và chi phí bổ sung phải được đối chiếu, thống nhất khi trả xe; nhiên liệu, cầu đường và đỗ xe không bao gồm trong tiền thuê.",
+  "insurance": "Kiểm tra chứng nhận, thời hạn và phạm vi bảo hiểm của xe trước khi ký hợp đồng. Bảo hiểm vật chất, mức miễn thường và trường hợp loại trừ chỉ áp dụng nếu được ghi rõ trong hồ sơ hoặc hợp đồng của xe; giá thuê hiển thị không mặc định bao gồm bảo hiểm vật chất. Khi xảy ra sự cố, liên hệ ngay đơn vị cho thuê và thực hiện theo hướng dẫn trong hợp đồng.",
+  "documents": "Xuất trình căn cước hoặc hộ chiếu và giấy phép lái xe còn hiệu lực, phù hợp với xe thuê để đối chiếu người nhận. Người nhận xe phải khớp với người ký hợp đồng; chỉ bàn giao sau khi hoàn tất kiểm tra giấy tờ, ký hợp đồng và biên bản nhận xe.",
+  "refund": "Tiền bảo đảm được hoàn sau khi kiểm tra xe và đối soát các khoản phát sinh có căn cứ, dự kiến trong 3 ngày làm việc. Nếu còn khoản chưa thống nhất, hai bên ghi rõ số tiền tạm giữ, lý do và thời hạn xử lý; không tự động khấu trừ ngoài thỏa thuận.",
+  "pricing": "Đơn giá tính theo mỗi 24 giờ; thời gian lẻ khi đặt được làm tròn lên một ngày. Giá niêm yết là mức thấp nhất của từng mẫu xe. Đơn giá theo xe, lịch thuê, phí giao nhận và ưu đãi được hiển thị trước khi xác nhận; không tự thay đổi trên đơn đã xác nhận. Mọi khoản điều chỉnh cần được hai bên thống nhất trước khi thực hiện.",
+  "locations": [
+    {
+      "id": "demo-hcm",
+      "name": "Điểm nhận thử nghiệm TP. Hồ Chí Minh",
+      "city": "TP. Hồ Chí Minh"
+    }
+  ]
+}

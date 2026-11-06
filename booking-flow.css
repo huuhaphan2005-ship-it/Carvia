@@ -1,0 +1,556 @@
+/* Quy trình đặt xe: dùng cùng bảng màu CARVIA. */
+[hidden] {
+  display: none !important;
+}
+.flow-page {
+  padding-top: 38px;
+  padding-bottom: 64px;
+}
+.flow-heading {
+  margin-bottom: 24px;
+}
+.flow-heading h1 {
+  margin: 10px 0;
+}
+.flow-demo {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  border: 1px solid #f5d5c2;
+  background: #fff5ef;
+  padding: 14px 20px;
+  border-radius: 12px;
+  margin: 20px 0;
+  font-size: 15px;
+}
+.flow-demo strong {
+  white-space: nowrap;
+  color: #a0390b;
+}
+.flow-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 28px;
+  align-items: start;
+  margin-top: 24px;
+}
+.flow-grid > *,
+.flow-grid aside,
+.flow-grid form {
+  min-width: 0;
+}
+.flow-grid .panel h2 {
+  font-size: 23px;
+}
+.flow-steps {
+  display: flex;
+  padding: 0;
+  margin: 28px 0;
+  list-style: none;
+  gap: 12px;
+}
+.flow-steps li {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 3px solid #e4e5eb;
+  padding: 12px 0;
+  color: #6b7280;
+  font-size: 16px;
+}
+.flow-steps b {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #eeeff6;
+  width: 28px;
+  height: 28px;
+}
+.flow-steps .active {
+  border-color: #ec5715;
+  color: #001229;
+}
+.flow-steps .active b {
+  background: #001229;
+  color: white;
+}
+.flow-money {
+  margin-top: 18px;
+}
+.flow-money .row {
+  gap: 16px;
+}
+.flow-money .row strong,
+.flow-money .row span:last-child {
+  text-align: right;
+}
+.flow-deposit {
+  background: #f3f4fc;
+  padding: 8px 14px;
+  margin: 12px -2px;
+  border-radius: 10px;
+}
+.flow-message {
+  margin: 20px auto;
+  border-left: 4px solid #ba2525;
+  background: #fff0f0;
+  padding: 16px;
+  color: #881d1d;
+  overflow-wrap: anywhere;
+}
+.flow-message.ok {
+  border-color: #26754b;
+  color: #1a5837;
+  background: #eef9f2;
+}
+.policy-box {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 20px;
+  margin: 20px 0;
+}
+.policy-box summary,
+details.panel summary {
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 1.6;
+}
+.policy-box .facts-list > div {
+  grid-template-columns: 115px 1fr;
+  font-size: 15px;
+}
+.policy-box .facts-list dd {
+  font-weight: 400;
+}
+.order-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  margin: 24px 0;
+}
+.order-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+.order-id {
+  overflow-wrap: anywhere;
+}
+.order-card h3 {
+  margin: 18px 0 8px;
+}
+.status {
+  display: inline-flex;
+  padding: 7px 12px;
+  background: #eeeefb;
+  color: #303c68;
+  border-radius: 30px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.status-CONFIRMED,
+.status-COMPLETED {
+  color: #17613f;
+  background: #e4f3e9;
+}
+.status-CANCELLED,
+.status-REJECTED,
+.status-EXPIRED {
+  color: #8f3030;
+  background: #fae9e7;
+}
+.status-AWAITING_PAYMENT,
+.status-QUOTED {
+  color: #93430c;
+  background: #fff0d7;
+}
+.flow-hold {
+  background: #fff2d9;
+  border-radius: 10px;
+  padding: 15px 20px;
+}
+.order-history {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 16px;
+  border-left: 2px solid #e2e4f0;
+}
+.order-history li {
+  position: relative;
+  padding: 10px 0 15px 12px;
+}
+.order-history li::before {
+  content: "";
+  position: absolute;
+  left: -21px;
+  top: 17px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ec5715;
+}
+.order-history time {
+  display: block;
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 5px;
+}
+.order-history p {
+  font-size: 16px;
+  margin: 6px 0;
+}
+.admin-counts {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  margin: 26px 0;
+}
+.admin-counts strong {
+  display: block;
+  font-size: 28px;
+}
+.admin-counts span {
+  font-size: 15px;
+}
+.fleet-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+.vehicle-form {
+  display: grid;
+  gap: 12px;
+}
+.vehicle-form label:not(.check) {
+  display: grid;
+  gap: 8px;
+  font-size: 15px;
+}
+.auth-server {
+  max-width: 520px;
+  margin: 30px auto;
+}
+.process-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.availability-panel {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.availability-panel .two {
+  max-width: 750px;
+}
+.account-name {
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#booking-widget .two {
+  grid-template-columns: 1fr;
+}
+.order-action {
+  margin-top: 12px;
+}
+.flow-page .check input,
+.vehicle-form .check input {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+.flow-page input[type="datetime-local"],
+#booking-widget input[type="datetime-local"] {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 1000px) {
+  .flow-grid {
+    grid-template-columns: 1fr;
+  }
+  .fleet-list,
+  .process-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .admin-counts {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+@media (max-width: 600px) {
+  .flow-page {
+    padding-top: 25px;
+  }
+  .flow-demo {
+    display: block;
+  }
+  .flow-demo strong {
+    display: block;
+    margin-bottom: 5px;
+  }
+  .flow-steps {
+    gap: 6px;
+  }
+  .flow-steps li {
+    font-size: 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .order-list,
+  .fleet-list,
+  .process-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-counts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .flow-page .actions {
+    flex-wrap: wrap;
+  }
+  .flow-page .facts-list > div {
+    grid-template-columns: 90px minmax(0, 1fr);
+  }
+  .flow-page dd {
+    overflow-wrap: anywhere;
+  }
+  .navright .account-name {
+    display: none;
+  }
+  .flow-page h1 {
+    font-size: 28px;
+  }
+}
+@media print {
+  #header,
+  #footer,
+  .no-print,
+  .flow-steps,
+  #toast,
+  .skip,
+  .flow-message {
+    display: none !important;
+  }
+  .flow-grid {
+    display: block;
+  }
+  .panel,
+  .policy-box {
+    break-inside: avoid;
+    box-shadow: none;
+    margin: 15px 0;
+  }
+  body {
+    background: white;
+    color: black;
+    font-size: 14px;
+  }
+  .wrap {
+    max-width: none;
+    width: 100%;
+  }
+  .flow-page {
+    padding: 0;
+  }
+  details.policy-box > * {
+    display: block;
+  }
+}
+@media (max-width: 1100px) {
+  .navright .account-name,
+  .navright a[href="admin.html"] {
+    display: none;
+  }
+  .navright {
+    margin-left: auto;
+    gap: 8px;
+  }
+  .mobile-toggle {
+    display: block;
+    flex-shrink: 0;
+  }
+  .navlinks {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    background: #fff;
+    padding: 16px;
+    box-shadow: 0 12px 20px #0001;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .navlinks.open {
+    display: flex;
+  }
+  .navlinks a,
+  .navlinks a:nth-last-child(-n + 2),
+  .navlinks .mobile-login {
+    display: block;
+    width: 100%;
+    padding: 12px;
+  }
+}
+
+.flow-steps {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.pickup-next {
+  margin-bottom: 24px;
+  border-left: 4px solid #ff632e;
+}
+.journey-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 700px) {
+  .journey-grid {
+    grid-template-columns: 1fr;
+  }
+  .flow-steps {
+    font-size: 14px;
+    gap: 8px;
+  }
+}
+
+/* Chi phí: tách tiền thuê, tiền bảo đảm và số tiền cần chuẩn bị. */
+.flow-money {
+  border: 1px solid #d7deeb;
+  border-top: 4px solid var(--deep);
+  box-shadow: 0 10px 30px #0012290a;
+}
+.flow-money h3 {
+  font-size: 21px;
+  line-height: 1.5;
+}
+.flow-money .row {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+.flow-money .row > :first-child {
+  min-width: 0;
+  flex: 1;
+}
+.flow-money .row > :last-child {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.cost-breakdown {
+  border-top: 1px solid var(--line);
+  margin-top: 20px;
+}
+.cost-breakdown .row {
+  padding: 14px 0;
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+}
+.flow-money small {
+  display: block;
+  font-size: 14px;
+  font-weight: 400;
+  color: #596579;
+  line-height: 1.6;
+  margin-top: 4px;
+}
+.cost-discount strong {
+  color: #246443;
+}
+.flow-money .rental-total {
+  margin: 18px 0;
+  padding: 18px;
+  background: #edf2f8;
+  border: 0;
+  border-radius: 10px;
+  font-size: 18px;
+}
+.rental-total > strong {
+  font-size: 22px;
+  color: var(--deep);
+}
+.flow-money .flow-deposit {
+  margin: 18px 0;
+  padding: 14px 16px;
+  background: #fff5ed;
+  border: 1px solid #f5dcc7;
+}
+.flow-money .flow-deposit p {
+  margin: 5px 0 0;
+}
+.security-cost {
+  margin: 20px 0;
+  padding: 0 2px;
+}
+.security-cost .row {
+  margin: 0;
+  padding: 0;
+}
+.refundable-label {
+  display: block;
+  color: #246443;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+.security-cost p {
+  margin-bottom: 0;
+}
+.pickup-total {
+  background: var(--deep);
+  color: #fff;
+  padding: 22px;
+  border-radius: 12px;
+}
+.pickup-total > span {
+  display: block;
+  font-size: 14px;
+  line-height: 1.6;
+  font-weight: 600;
+}
+.pickup-total > strong {
+  display: block;
+  font-size: clamp(28px, 3vw, 34px);
+  line-height: 1.4;
+  margin: 10px 0;
+  font-variant-numeric: tabular-nums;
+}
+.pickup-total p {
+  margin: 0;
+  font-size: 14px;
+  color: #e1e8f2;
+}
+.cost-exclusions {
+  font-size: 14px;
+  line-height: 1.7;
+  margin: 16px 0 0;
+  color: #596579;
+}
+@media (max-width: 600px) {
+  .flow-money .rental-total {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .flow-money .rental-total > strong {
+    text-align: left;
+  }
+  .flow-money .row {
+    gap: 12px;
+  }
+  .pickup-total {
+    padding: 18px;
+  }
+  .policy-box .facts-list > div {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+.flow-money .row > :first-child,
+.flow-money .row .refundable-label {
+  text-align: left;
+}
