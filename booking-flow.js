@@ -2,8 +2,9 @@
 (() => {
   "use strict";
   const $ = (q) => document.querySelector(q);
+  const cleanLabel = (s) => String(s ?? "").replace(/\s*·\s*xe mô phỏng\s*\d+/gi, "").replace(/Điểm nhận thử nghiệm TP\. Hồ Chí Minh/gi, "Điểm nhận xe CARVIA tại TP. Hồ Chí Minh").replace(/DEMO-(\d+)/g, "CV-$1");
   const E = (s) =>
-    String(s ?? "").replace(
+    cleanLabel(s).replace(
       /[&<>"']/g,
       (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
     );
@@ -235,7 +236,7 @@
       const first = result.vehicles.find((v) => v.available);
       if (!$("#vehicle_id").value && first) $("#vehicle_id").value = first.id;
       $("#availability-result").textContent = first
-        ? "Có xe đáp ứng lịch trong dữ liệu demo."
+        ? "Có xe còn trống trong thời gian bạn chọn."
         : "Chưa có xe trống hoặc chưa cấu hình giá. Thử lịch khác.";
       checked = !!first;
       $("#continue-booking").disabled = !checked;
@@ -306,14 +307,14 @@
       <div class="flow-grid"><form id="customer-request" class="panel stack">
       <h2>Chuyến đi của bạn</h2>${datesFields(d)}
       <div class="field"><label for="vehicle_id">Xe đã chọn</label><select id="vehicle_id" name="vehicle_id" required>${renderVehicleOptions(all.vehicles, d.vehicle_id)}</select></div>
-      <div class="field"><label for="delivery">Nhận và trả xe</label><select name="delivery" id="delivery"><option value="station">Tại điểm nhận thử nghiệm TP. Hồ Chí Minh</option><option value="address">Giao và nhận cùng địa chỉ tại TP. Hồ Chí Minh (demo)</option></select></div>
+      <div class="field"><label for="delivery">Nhận và trả xe</label><select name="delivery" id="delivery"><option value="station">Tại điểm nhận xe CARVIA tại TP. Hồ Chí Minh</option><option value="address">Giao và nhận xe tại địa chỉ của bạn ở TP. Hồ Chí Minh</option></select></div>
       ${field("Địa chỉ giao nhận", "address", d.address, "text", 'maxlength="250"')}
       <h2>Thông tin liên hệ</h2>${field("Họ và tên", "name", d.name, "text", 'required minlength="2" maxlength="80" autocomplete="name"')}
       <div class="two">${field("Số di động Việt Nam", "phone", d.phone, "tel", 'required maxlength="18" autocomplete="tel"')}${field("Email", "email", d.email, "email", 'required maxlength="120" autocomplete="email"')}</div>
       <p class="fine muted">Dùng số điện thoại của người trực tiếp nhận xe.</p>
       <details><summary>Mã ưu đãi hoặc lời nhắn (không bắt buộc)</summary>${field("Mã ưu đãi (không bắt buộc)", "promo", d.promo, "text", 'maxlength="30" placeholder="CARVIA10"')}
       <div class="field"><label for="note">Ghi chú</label><textarea id="note" name="note" maxlength="500" rows="3">${E(d.note)}</textarea></div></details>
-      <p class="fine">Khi nhận xe: mang giấy tờ định danh và GPLX phù hợp; cùng kiểm tra xe và thanh toán.</p>${policyHTML({ ...policy, deposit_percent: 0 })}<label class="check"><input id="request-agree" type="checkbox" required><span>Tôi đã kiểm tra lịch, tổng tiền và đồng ý điều kiện thuê trong bản demo.</span></label>
+      <p class="fine">Khi nhận xe: mang giấy tờ định danh và GPLX phù hợp; cùng kiểm tra xe và thanh toán.</p>${policyHTML({ ...policy, deposit_percent: 0 })}<label class="check"><input id="request-agree" type="checkbox" required><span>Tôi đã kiểm tra lịch, tổng tiền và đồng ý với điều khoản thuê xe.</span></label>
       <div class="actions"><button id="save-draft" type="button" class="btn outline">Lưu bản nháp</button><button type="submit" class="btn dark">Xác nhận đặt xe</button></div>
       </form><aside><div class="panel"><div class="eyebrow">TRƯỚC KHI GỬI</div><h3>Đặt xong, nhận xác nhận ngay</h3><p>Không cần chờ gửi và chấp nhận báo giá. Thanh toán khi nhận xe.</p><button id="preview-price" class="btn outline">Xem lại ước tính</button></div><div id="live-estimate"></div></aside></div>`,
       1,
@@ -446,7 +447,7 @@
   const reasonField = () =>
     field("Lý do", "reason", "", "text", 'required minlength="3" maxlength="500"');
   const demoCheck = () =>
-    '<label class="check"><input type="checkbox" name="demo_confirm" required><span>Tôi xác nhận đây là ghi nhận mô phỏng, không có giao dịch tiền thật.</span></label>';
+    '<label class="check"><input type="checkbox" name="demo_confirm" required><span>Tôi xác nhận đã đối chiếu khoản tiền thực nhận hoặc thực hoàn với chứng từ.</span></label>';
   function reportForm(action, q) {
     return actionForm(
       action,
@@ -456,10 +457,10 @@
     <div class="field"><label for="condition">Tình trạng xe / phụ kiện / hư hỏng</label><textarea name="condition" id="condition" required minlength="5" maxlength="2000"></textarea></div>
     ${
       action === "handover"
-        ? `<label class="check"><input type="checkbox" name="documents_checked" required><span>Đã đối chiếu người nhận, giấy tờ định danh và GPLX trong kịch bản demo.</span></label><label class="check"><input type="checkbox" name="money_checked" required><span>Đã ghi nhận mô phỏng tiền thuê còn lại ${M(q.remaining)} và tiền bảo đảm ${M(q.security_deposit)}.</span></label>`
+        ? `<label class="check"><input type="checkbox" name="documents_checked" required><span>Đã đối chiếu người nhận, giấy tờ định danh và GPLX.</span></label><label class="check"><input type="checkbox" name="money_checked" required><span>Đã đối chiếu khoản tiền thuê còn lại ${M(q.remaining)} và tiền bảo đảm ${M(q.security_deposit)}.</span></label>`
         : `${field("Phụ phí khác đã thống nhất (đ)", "other_fee", 0, "number", 'required min="0" max="100000000" step="1"')}${field("Lý do phụ phí / chứng từ đối chiếu", "fee_reason", "", "text", 'maxlength="1000"')}<p class="fine muted">Hệ thống tính km vượt và giờ trả trễ theo báo giá đã chốt; tiền bảo đảm được đối soát ở bước riêng.</p>`
     }
-    <label class="check"><input type="checkbox" name="acknowledged" required><span>Hai bên đã đối chiếu nội dung trong kịch bản demo. Đây không phải chữ ký điện tử thực.</span></label>`,
+    <label class="check"><input type="checkbox" name="acknowledged" required><span>Hai bên đã đối chiếu nội dung. Đây không phải chữ ký điện tử thực.</span></label>`,
     );
   }
   function reportsHTML(reports) {
@@ -468,8 +469,8 @@
         ([
           kind,
           r,
-        ]) => `<section class="panel"><h3>${kind === "handover" ? "Biên bản nhận xe" : "Biên bản trả xe"} · mô phỏng</h3><p>${dateText(r.at)}</p><div class="row"><span>Đồng hồ km</span><strong>${r.odometer}</strong></div><div class="row"><span>Nhiên liệu</span><strong>${r.fuel}%</strong></div><p class="readonly">${E(r.condition)}</p>
-    ${kind === "return" ? `<div class="row"><span>Km vượt</span><strong>${r.extra_km} km</strong></div><div class="row"><span>Giờ trả trễ</span><strong>${r.late_hours} giờ</strong></div><div class="row"><span>Tổng phát sinh</span><strong>${M(r.extra_total)}</strong></div><p class="fine">${E(r.fee_reason || "Không có phụ phí khác.")}</p><div class="row"><span>Tiền bảo đảm cần hoàn</span><strong>${M(r.security_refund_due)}</strong></div><div class="row"><span>Cần thanh toán bổ sung</span><strong>${M(r.additional_due)}</strong></div><p class="notice">${r.settled ? "Đã đối soát mô phỏng." : "Chờ quản trị đối soát tiền bảo đảm / phụ phí."}</p>` : ""}</section>`,
+        ]) => `<section class="panel"><h3>${kind === "handover" ? "Biên bản nhận xe" : "Biên bản trả xe"}</h3><p>${dateText(r.at)}</p><div class="row"><span>Đồng hồ km</span><strong>${r.odometer}</strong></div><div class="row"><span>Nhiên liệu</span><strong>${r.fuel}%</strong></div><p class="readonly">${E(r.condition)}</p>
+    ${kind === "return" ? `<div class="row"><span>Km vượt</span><strong>${r.extra_km} km</strong></div><div class="row"><span>Giờ trả trễ</span><strong>${r.late_hours} giờ</strong></div><div class="row"><span>Tổng phát sinh</span><strong>${M(r.extra_total)}</strong></div><p class="fine">${E(r.fee_reason || "Không có phụ phí khác.")}</p><div class="row"><span>Tiền bảo đảm cần hoàn</span><strong>${M(r.security_refund_due)}</strong></div><div class="row"><span>Cần thanh toán bổ sung</span><strong>${M(r.additional_due)}</strong></div><p class="notice">${r.settled ? "Đã đối soát." : "Chờ quản trị đối soát tiền bảo đảm / phụ phí."}</p>` : ""}</section>`,
       )
       .join("");
   }
@@ -495,8 +496,8 @@
         "quote",
         "Kiểm tra và lập báo giá",
         `
-      <p>Xe ${E(o.vehicle_id)} · ${E(v?.label)}. Máy chủ kiểm tra lại lịch và giá ngay khi lập báo giá.</p><label class="check"><input type="checkbox" name="contact_checked" required><span>Đã kiểm tra thông tin liên hệ / địa chỉ trong kịch bản demo. Không phải xác minh OTP tự động.</span></label>
-      <div class="field"><label for="insurance">Phạm vi bảo hiểm / mức tự chịu / loại trừ</label><textarea name="insurance" id="insurance" required minlength="15" maxlength="1000" placeholder="Ghi điều kiện cụ thể hoặc nêu rõ chưa cung cấp bảo hiểm trong demo."></textarea></div>`,
+      <p>Xe ${E(o.vehicle_id)} · ${E(v?.label)}. Máy chủ kiểm tra lại lịch và giá ngay khi lập báo giá.</p><label class="check"><input type="checkbox" name="contact_checked" required><span>Đã kiểm tra thông tin liên hệ / địa chỉ. Không phải xác minh OTP tự động.</span></label>
+      <div class="field"><label for="insurance">Phạm vi bảo hiểm / mức tự chịu / loại trừ</label><textarea name="insurance" id="insurance" required minlength="15" maxlength="1000" placeholder="Ghi phạm vi bảo hiểm, mức miễn thường và trường hợp loại trừ theo hồ sơ xe."></textarea></div>`,
         "Gửi báo giá và giữ xe 30 phút",
       );
     if (!admin && o.status === "QUOTED")
@@ -509,15 +510,15 @@
     if (admin && o.status === "AWAITING_PAYMENT")
       forms += actionForm(
         "record_demo_payment",
-        "Đối soát khoản giữ chỗ mô phỏng",
+        "Đối soát khoản giữ chỗ",
         `${field("Số tiền giữ chỗ (đ)", "amount", q.deposit, "number", 'required min="1" step="1"')}${demoCheck()}`,
-        "Ghi nhận mô phỏng và xác nhận xe",
+        "Ghi nhận thanh toán và xác nhận xe",
       );
     if (["REQUESTED", "QUOTED", "AWAITING_PAYMENT", "CONFIRMED"].includes(o.status))
       forms += actionForm(
         "cancel",
         "Hủy yêu cầu",
-        `${reasonField()}<p class="fine">${simple ? "Bạn chưa thanh toán trước nên không có khoản giữ chỗ cần hoàn." : "Khoản giữ chỗ đã ghi nhận được chuyển sang chờ hoàn theo điều kiện demo."}</p>`,
+        `${reasonField()}<p class="fine">${simple ? "Bạn chưa thanh toán trước nên không có khoản giữ chỗ cần hoàn." : "Khoản giữ chỗ đã ghi nhận được chuyển sang chờ hoàn theo điều kiện thuê xe."}</p>`,
         "Xác nhận hủy",
       );
     if (admin && ["REQUESTED", "QUOTED", "AWAITING_PAYMENT"].includes(o.status))
@@ -526,8 +527,8 @@
       forms += actionForm(
         "refund",
         "Hoàn khoản giữ chỗ",
-        `<p>Số tiền cần hoàn mô phỏng: <strong>${M(o.refund_due)}</strong></p>${demoCheck()}`,
-        "Ghi nhận đã hoàn mô phỏng",
+        `<p>Số tiền cần hoàn: <strong>${M(o.refund_due)}</strong></p>${demoCheck()}`,
+        "Ghi nhận đã hoàn tiền",
       );
     if (admin && o.status === "CONFIRMED") forms += reportForm("handover", q);
     if (admin && o.status === "RENTING") forms += reportForm("return", q);
@@ -536,13 +537,13 @@
         "settle",
         "Đối soát cuối cùng",
         `<p>Hoàn tiền bảo đảm: ${M(o.reports.return?.security_refund_due)} · Thu bổ sung: ${M(o.reports.return?.additional_due)}</p>${demoCheck()}`,
-        "Hoàn tất đối soát mô phỏng",
+        "Hoàn tất đối soát",
       );
     let revise = "";
     if (!admin && ["REQUESTED", "QUOTED", "AWAITING_PAYMENT", "EXPIRED"].includes(o.status))
       revise = `<details class="panel no-print"><summary>Sửa xe / lịch trình / giao nhận</summary><form class="stack order-action" data-action="revise">${datesFields(o.payload, "r-")}
       <div class="field"><label for="r-vehicle">Xe cụ thể</label><select name="vehicle_id" id="r-vehicle">${renderVehicleOptions(vehiclesCache, o.vehicle_id)}</select></div>
-      <div class="field"><label for="r-delivery">Giao nhận</label><select name="delivery" id="r-delivery"><option value="station">Tại điểm nhận demo</option><option value="address">Giao cùng địa chỉ (TP. Hồ Chí Minh)</option></select></div>
+      <div class="field"><label for="r-delivery">Giao nhận</label><select name="delivery" id="r-delivery"><option value="station">Tại điểm nhận xe CARVIA</option><option value="address">Giao cùng địa chỉ (TP. Hồ Chí Minh)</option></select></div>
       ${field("Địa chỉ giao nhận", "r-address", o.payload.address, "text", 'maxlength="250"')}${field("Mã ưu đãi", "r-promo", o.payload.promo, "text", 'maxlength="30"')}
       <p class="notice">Sửa yêu cầu hủy báo giá và giữ chỗ cũ. Thông tin người thuê được giữ nguyên; cần quản trị gửi báo giá mới.</p><button class="btn outline">Lưu thay đổi và yêu cầu báo giá lại</button></form></details>`;
     shell(
@@ -552,7 +553,7 @@
           ? "Đã tiếp nhận yêu cầu"
           : "Chi tiết đơn thuê",
       o.status === "REQUESTED"
-        ? "Yêu cầu đã được lưu. Chưa giữ xe, chưa thanh toán. Trong demo, đăng nhập quản trị để xử lý."
+        ? "Yêu cầu đã được lưu và đang chờ kiểm tra. Xe chưa được giữ cho đến khi xác nhận lịch thuê."
         : simple
           ? o.status === "CONFIRMED"
             ? "Xe đã được giữ theo lịch của bạn. Không cần chờ xác nhận thêm, thanh toán khi nhận xe."
@@ -563,13 +564,13 @@
       <div class="order-top"><span class="status status-${o.status}">${E(o.status_label)}</span><span class="fine order-id">${E(o.id)}</span></div>
       <div class="actions no-print"><a href="${admin ? "admin.html" : "orders.html"}" class="btn outline">${admin ? "Về quản trị" : "Đơn thuê của tôi"}</a><button class="btn outline" id="refresh-order">Cập nhật trạng thái</button>${q ? '<button class="btn outline" id="print-order">In / lưu PDF đơn và điều khoản</button>' : ""}</div>
       ${o.expires && ["QUOTED", "AWAITING_PAYMENT"].includes(o.status) ? `<div class="flow-hold">Báo giá / giữ xe đến <strong>${dateText(o.expires)}</strong>. <span id="hold-countdown" data-until="${o.expires}"></span></div>` : ""}
-      ${o.status === "AWAITING_PAYMENT" ? '<p class="notice">Đã đồng ý báo giá. Chờ quản trị ghi nhận khoản giữ chỗ mô phỏng trước khi xác nhận xe. Không chuyển tiền thật.</p>' : ""}
+      ${o.status === "AWAITING_PAYMENT" ? '<p class="notice">Đã đồng ý báo giá. Chờ đối chiếu khoản giữ chỗ trước khi xác nhận xe.</p>' : ""}
       <div class="flow-grid"><div class="stack"><section class="panel"><h2>${E(q?.vehicle_label || v?.label || o.vehicle_id)}</h2><dl class="facts-list"><div><dt>Lịch trình</dt><dd>${dateText(o.start)} → ${dateText(o.end)}</dd></div><div><dt>Hộp số</dt><dd>${E(q?.gear || v?.gear)}</dd></div><div><dt>Người thuê</dt><dd>${E(o.payload.name)}</dd></div><div><dt>Liên hệ</dt><dd>${E(o.payload.phone)}<br>${E(o.payload.email)}</dd></div><div><dt>Giao nhận</dt><dd>${o.payload.delivery === "address" ? E(o.payload.address) : E(policy.locations[0].name)}</dd></div><div><dt>Ghi chú</dt><dd>${E(o.payload.note || "Không có")}</dd></div></dl>
-      ${simple ? "" : `<p class="fine muted">Thông tin liên hệ ${q?.contact_checked_demo ? "đã được quản trị đánh dấu kiểm tra trong demo" : "chưa được quản trị kiểm tra"}. Chưa tích hợp OTP/SMS.</p>`}</section>
+      ${simple ? "" : `<p class="fine muted">Thông tin liên hệ ${q?.contact_checked_demo ? "đã được nhân viên kiểm tra" : "chưa được quản trị kiểm tra"}. Chưa tích hợp OTP/SMS.</p>`}</section>
       ${revise}<div class="no-print stack">${simple && !admin && forms ? `<details class="panel"><summary>Cần hủy chuyến?</summary>${forms}</details>` : forms}</div>${reportsHTML(o.reports)}
       <details class="panel"><summary>Lịch sử xử lý</summary><ol class="order-history">${o.history.map((h) => `<li><time>${dateText(h.at)}</time><strong>${E(h.actor)}</strong><p>${E(h.message)}</p></li>`).join("")}</ol></details></div>
       <aside class="stack">${q ? moneyBox(q, true) : '<div class="panel"><h3>Chưa có báo giá xác nhận</h3><p>Quản trị kiểm tra chiếc xe, địa chỉ giao nhận và điều kiện thuê trước khi báo giá. Giá ở danh mục chỉ để tham khảo.</p></div>'}
-      ${simple ? "" : `<div class="panel"><h3>Đối soát khoản giữ chỗ</h3><div class="row"><span>Đã ghi nhận mô phỏng</span><strong>${M(o.paid)}</strong></div><div class="row"><span>Chờ hoàn</span><strong>${M(o.refund_due)}</strong></div><div class="row"><span>Đã hoàn mô phỏng</span><strong>${M(o.refunded)}</strong></div></div>`}
+      ${simple ? "" : `<div class="panel"><h3>Đối soát khoản giữ chỗ</h3><div class="row"><span>Đã ghi nhận</span><strong>${M(o.paid)}</strong></div><div class="row"><span>Chờ hoàn</span><strong>${M(o.refund_due)}</strong></div><div class="row"><span>Đã hoàn</span><strong>${M(o.refunded)}</strong></div></div>`}
       ${policyHTML(q?.policy || policy, q?.insurance)}</aside></div>`,
       2,
     );
@@ -631,17 +632,17 @@
     result.orders.forEach((o) => (counts[o.status] = (counts[o.status] || 0) + 1));
     shell(
       "Quản trị đặt xe",
-      "Kiểm tra yêu cầu, báo giá, lịch xe và đối soát mô phỏng.",
+      "Quản lý đơn thuê, lịch xe, giao nhận và đối soát.",
       `
       <div class="admin-counts">${["REQUESTED", "QUOTED", "AWAITING_PAYMENT", "CONFIRMED", "RENTING"].map((s) => `<div class="panel"><strong>${counts[s] || 0}</strong><span>${statuses[s]}</span></div>`).join("")}</div>
-      <div class="actions"><button class="btn outline" id="refresh-admin">Cập nhật</button><a class="btn outline" href="#fleet">Quản lý xe / bảo dưỡng</a></div>
+      <section class="panel"><h2>Yêu cầu liên hệ</h2><p class="fine">Hiển thị 100 yêu cầu gần nhất. Phản hồi khách qua thông tin đã cung cấp.</p><div class="stack">${(result.contacts || []).map(c => `<article><strong>${E(c.name)}</strong><p>${E(c.email)} · ${dateText(c.created)}</p><p class="readonly">${E(c.message)}</p></article>`).join("") || "<p>Chưa có yêu cầu liên hệ.</p>"}</div></section><div class="actions"><button class="btn outline" id="refresh-admin">Cập nhật</button><a class="btn outline" href="#fleet">Quản lý xe / bảo dưỡng</a></div>
       <div class="field"><label for="status-filter">Lọc trạng thái</label><select id="status-filter"><option value="">Tất cả</option>${Object.entries(
         statuses,
       )
         .map(([k, v]) => `<option value="${k}">${v}</option>`)
         .join("")}</select></div><div id="admin-orders" class="order-list"></div>
-      <section id="fleet" class="section"><h2>Xe và đơn giá demo</h2><p>Giá cập nhật áp dụng cho báo giá mới. Không thay đổi báo giá đã chốt. Tắt xe ngăn nhận lịch mới; cần xử lý riêng các đơn đã xác nhận.</p>
-      <div class="fleet-list">${result.vehicles.map((v) => `<form class="panel vehicle-form" data-id="${E(v.id)}"><div><strong>${E(v.id)}</strong><span class="fine muted"> · ${E(v.gear)}</span></div><label>Tên phiên bản / chiếc xe<input name="label" required minlength="5" maxlength="180" value="${E(v.label)}"></label><label>Đơn giá demo/ngày (đ)<input type="number" name="daily_price" value="${v.daily_price ?? ""}" min="100000" max="20000000" step="1000" placeholder="Để trống nếu chưa có giá"></label><label class="check"><input name="active" type="checkbox" ${v.active ? "checked" : ""}><span>Cho phép nhận yêu cầu</span></label><button class="btn outline small">Lưu xe</button></form>`).join("")}</div></section>
+      <section id="fleet" class="section"><h2>Xe và đơn giá thuê</h2><p>Giá cập nhật áp dụng cho báo giá mới. Không thay đổi báo giá đã chốt. Tắt xe ngăn nhận lịch mới; cần xử lý riêng các đơn đã xác nhận.</p>
+      <div class="fleet-list">${result.vehicles.map((v) => `<form class="panel vehicle-form" data-id="${E(v.id)}"><div><strong>${E(v.id)}</strong><span class="fine muted"> · ${E(v.gear)}</span></div><label>Tên phiên bản / chiếc xe<input name="label" required minlength="5" maxlength="180" value="${E(v.label)}"></label><label>Đơn giá thuê/ngày (đ)<input type="number" name="daily_price" value="${v.daily_price ?? ""}" min="100000" max="20000000" step="1000" placeholder="Để trống nếu chưa có giá"></label><label class="check"><input name="active" type="checkbox" ${v.active ? "checked" : ""}><span>Cho phép nhận yêu cầu</span></label><button class="btn outline small">Lưu xe</button></form>`).join("")}</div></section>
       <section class="section"><h2>Khóa lịch bảo dưỡng</h2><form id="block-form" class="panel stack"><div class="field"><label for="block-vehicle">Xe</label><select id="block-vehicle" name="vehicle_id">${result.vehicles.map((v) => `<option value="${v.id}">${E(v.label)}</option>`).join("")}</select></div>${datesFields(defaultDates(), "b-")}${field("Lý do khóa lịch", "reason", "", "text", 'required minlength="3" maxlength="250"')}<button class="btn dark">Thêm lịch bảo dưỡng</button></form>
       <div class="stack">${result.blocks.map((b) => `<div class="panel row"><div><strong>${E(b.vehicle_id)} · ${E(b.reason)}</strong><p>${dateText(b.start)} → ${dateText(b.end)}</p></div><button class="btn outline small unblock" data-id="${E(b.id)}">Bỏ khóa</button></div>`).join("")}</div></section>`,
     );
@@ -794,7 +795,7 @@
           });
       }
       $("#calendar-count").textContent = availableModels
-        ? `${cards.filter((c) => !c.hidden).length} mẫu đáp ứng cả bộ lọc và lịch demo.`
+        ? `${cards.filter((c) => !c.hidden).length} mẫu xe đáp ứng bộ lọc và lịch thuê.`
         : "";
     }
     new MutationObserver(mark).observe($("#results"), { childList: true });

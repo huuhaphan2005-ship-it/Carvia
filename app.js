@@ -458,8 +458,7 @@ function home() {
           </div>
           <div>
             <p>
-              Carvia là đồ án website cho thuê ô tô, mô phỏng trải nghiệm tìm kiếm, lựa chọn và đặt
-              xe trực tuyến.
+              CARVIA hỗ trợ tìm kiếm, lựa chọn và đặt thuê ô tô tự lái trực tuyến.
             </p>
             <p>
               Thiết kế tập trung vào thông tin dễ tra cứu, chi phí rõ ràng và thao tác thuận tiện
@@ -818,7 +817,7 @@ function pricing() {
 // TRANG LIÊN HỆ
 function contact() {
   $("#main").innerHTML =
-    pageHead("Liên hệ CARVIA", "Thông tin liên hệ và góp ý cho website đồ án.") +
+    pageHead("Liên hệ CARVIA", "Hỗ trợ đặt xe, giải đáp điều kiện thuê và tiếp nhận yêu cầu của bạn.") +
     /* HTML */ `
       <div class="wrap contact-grid section" style="padding-top:0">
         <div>
@@ -828,28 +827,11 @@ function contact() {
             <br />
             Hành trình thuận tiện.
           </h2>
-          <p class="muted">
-            Website đang ở giai đoạn mô phỏng. Hotline, email và địa chỉ kinh doanh chưa được cung
-            cấp.
-          </p>
-          <div class="panel">
-            <h3>Kênh liên hệ</h3>
-            <div class="row">
-              <span>Hotline</span>
-              <span>Chưa cập nhật</span>
-            </div>
-            <div class="row">
-              <span>Email</span>
-              <span>Chưa cập nhật</span>
-            </div>
-            <div class="row">
-              <span>Địa chỉ</span>
-              <span>Chưa cập nhật</span>
-            </div>
-          </div>
+          <p class="muted">Gửi yêu cầu tư vấn hoặc câu hỏi về chuyến đi qua biểu mẫu bên cạnh. Bạn cũng có thể theo dõi lịch thuê và thông tin giao nhận trong Đơn thuê của tôi.</p>
+          <div id="contact-channels"></div>
         </div>
         <form id="contact-form" class="panel stack">
-          <h3>Biểu mẫu góp ý thử nghiệm</h3>
+          <h3>Gửi yêu cầu hỗ trợ</h3>
           <div class="two">
             <div class="field">
               <label for="c-name">Họ và tên</label>
@@ -861,28 +843,54 @@ function contact() {
             </div>
           </div>
           <div class="field">
-            <label for="c-message">Nội dung góp ý</label>
+            <label for="c-message">Nội dung cần hỗ trợ</label>
             <textarea
               id="c-message"
               required
               rows="6"
               maxlength="2000"
-              placeholder="Nhập nội dung thử nghiệm..."
+              placeholder="Nhập câu hỏi về xe, lịch thuê hoặc đơn đặt xe của bạn..."
             ></textarea>
           </div>
           <p class="notice">
-            Biểu mẫu chỉ kiểm tra dữ liệu nhập, không gửi email và không chuyển nội dung đến người
-            nhận.
+            Yêu cầu được lưu để bộ phận quản lý tiếp nhận. Vui lòng cung cấp email chính xác để nhận phản hồi; không gửi mật khẩu, số thẻ hoặc ảnh giấy tờ qua biểu mẫu.
           </p>
-          <button class="btn dark">Kiểm tra biểu mẫu</button>
+          <button class="btn dark" type="submit">Gửi yêu cầu</button>
           <p id="contact-result" role="status" class="fine"></p>
         </form>
       </div>
     `;
-  $("#contact-form").onsubmit = (e) => {
+  fetch("/api/contact-info", { credentials: "same-origin" })
+    .then(r => { if (!r.ok) throw Error(); return r.json(); })
+    .then(info => {
+      const rows = [["Hotline", info.phone], ["Email", info.email], ["Địa chỉ", info.address]].filter(([, value]) => value);
+      $("#contact-channels").innerHTML = rows.length
+        ? `<div class="panel"><h3>Kênh liên hệ</h3>${rows.map(([label, value]) => `<div class="row"><span>${label}</span><span>${esc(value)}</span></div>`).join("")}</div>` : "";
+    }).catch(() => {});
+  const form = $("#contact-form");
+  let requestKey = crypto.randomUUID(), lastPayload = "";
+  form.onsubmit = async (e) => {
     e.preventDefault();
-    $("#contact-result").textContent =
-      "Thông tin hợp lệ. Hoàn tất kiểm tra biểu mẫu; nội dung chưa được gửi.";
+    const button = form.querySelector("button");
+    const result = $("#contact-result");
+    const payload = { name: $("#c-name").value.trim(), email: $("#c-email").value.trim(), message: $("#c-message").value.trim() };
+    const fingerprint = JSON.stringify(payload);
+    if (lastPayload && lastPayload !== fingerprint) requestKey = crypto.randomUUID();
+    lastPayload = fingerprint;
+    button.disabled = true; result.textContent = "Đang gửi yêu cầu…";
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "X-Carvia-Request": "1" },
+        body: JSON.stringify({ ...payload, request_key: requestKey })
+      });
+      const data = await response.json();
+      if (!response.ok) throw Error(data.error || "Không thể gửi yêu cầu. Vui lòng thử lại.");
+      result.textContent = `Đã tiếp nhận yêu cầu. Mã tra cứu: ${data.id}. Vui lòng giữ mã này khi cần trao đổi về yêu cầu.`;
+      form.reset(); requestKey = crypto.randomUUID(); lastPayload = "";
+    } catch (error) {
+      result.textContent = error.message || "Kết nối bị gián đoạn. Vui lòng thử lại.";
+    } finally { button.disabled = false; }
   };
 }
 // ĐỊNH TUYẾN THEO TÊN TỆP HTML

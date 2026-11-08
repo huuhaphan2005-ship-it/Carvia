@@ -1,5 +1,5 @@
 {
-  "version": "carvia-rental-v4",
+  "version": "carvia-rental-v5",
   "demo": true,
   "currency": "VND",
   "timezone": "Asia/Ho_Chi_Minh",
@@ -27,7 +27,7 @@
   "locations": [
     {
       "id": "demo-hcm",
-      "name": "Điểm nhận thử nghiệm TP. Hồ Chí Minh",
+      "name": "Điểm nhận xe CARVIA tại TP. Hồ Chí Minh",
       "city": "TP. Hồ Chí Minh"
     }
   ]

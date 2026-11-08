@@ -149,6 +149,11 @@ def init_db():
           PRIMARY KEY(order_id,kind));
         CREATE TABLE IF NOT EXISTS drafts (
           owner TEXT PRIMARY KEY REFERENCES users(id), payload TEXT NOT NULL, version INTEGER NOT NULL, updated REAL NOT NULL);
+        CREATE TABLE IF NOT EXISTS contact_requests (
+          id TEXT PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL, message TEXT NOT NULL,
+          created REAL NOT NULL, sender_hash TEXT NOT NULL, request_key TEXT NOT NULL,
+          UNIQUE(sender_hash,request_key));
+        CREATE INDEX IF NOT EXISTS contact_sender_time ON contact_requests(sender_hash,created);
         CREATE TABLE IF NOT EXISTS login_limits (
           key TEXT PRIMARY KEY, attempts INTEGER NOT NULL, reset REAL NOT NULL);
         ''')
@@ -161,8 +166,14 @@ def init_db():
         for n, c in enumerate(CATALOG, 1):
             gear = gear_map.get(c['id'], next((g for g in ['AT','CVT','IVT','DCT','MT'] if g in c['gears']), 'AT'))
             db.execute('INSERT OR IGNORE INTO vehicles VALUES(?,?,?,?,?,?,?)',
-                       (f'DEMO-{n:03}', c['id'], f"{c['name']} · {gear} · xe mô phỏng {n:02}",
+                       (f'DEMO-{n:03}', c['id'], f"{c['name']} · {gear}",
                         gear, 'demo-hcm', c['price'], 1))
+
+
+        for row in db.execute("SELECT id,label FROM vehicles").fetchall():
+            cleaned = re.sub(r'\s*·\s*xe mô phỏng\s*\d+$', '', row['label'])
+            if cleaned != row['label']:
+                db.execute('UPDATE vehicles SET label=? WHERE id=?',(cleaned,row['id']))
 
 
 def event(db, order_id, actor, message):
@@ -287,16 +298,16 @@ def apply_action(db, r, user, data):
     if action == 'quote':
         need(admin, 'Chỉ quản trị được lập báo giá.', 403)
         need(status in ('REQUESTED','EXPIRED'), 'Không thể lập báo giá ở trạng thái này.', 409)
-        need(data.get('contact_checked') is True, 'Cần xác nhận đã kiểm tra thông tin liên hệ trong kịch bản demo.')
+        need(data.get('contact_checked') is True, 'Cần xác nhận đã kiểm tra thông tin liên hệ.')
         insurance = text(data.get('insurance', ''), 1000)
-        need(len(insurance) >= 15, 'Ghi rõ điều kiện bảo hiểm hoặc xác nhận chưa cung cấp bảo hiểm trong demo.')
+        need(len(insurance) >= 15, 'Ghi rõ điều kiện bảo hiểm hoặc xác nhận chưa cung cấp bảo hiểm.')
         q = estimate(db, payload, r['owner'], r['id'])
         q['insurance'] = insurance
         q['contact_checked_demo'] = True
         q['issued_at'] = now
         db.execute('UPDATE orders SET quote=?, expires=? WHERE id=?',
                    (json.dumps(q, ensure_ascii=False), now+POLICY['quote_minutes']*60, r['id']))
-        new_status, message = 'QUOTED', 'Đã lập báo giá và giữ xe 30 phút theo cấu hình demo.'
+        new_status, message = 'QUOTED', 'Đã lập báo giá và giữ xe 30 phút.'
     elif action == 'accept':
         need(r['owner'] == user['id'], 'Chỉ người đặt được chấp nhận báo giá.', 403)
         need(status == 'QUOTED' and q, 'Báo giá không còn hiệu lực.', 409)
@@ -307,11 +318,11 @@ def apply_action(db, r, user, data):
     elif action == 'record_demo_payment':
         need(admin, 'Chỉ quản trị được đối soát.', 403)
         need(status == 'AWAITING_PAYMENT' and q, 'Đơn chưa sẵn sàng ghi nhận giữ chỗ.', 409)
-        need(data.get('demo_confirm') is True, 'Cần xác nhận thao tác là mô phỏng.')
+        need(data.get('demo_confirm') is True, 'Cần xác nhận đã đối chiếu khoản tiền với chứng từ.')
         need(integer(data.get('amount')) == q['deposit'], 'Số tiền phải khớp khoản giữ chỗ trong báo giá.')
         need(r['start'] > now and available(db, r['vehicle_id'], r['start'], r['end'], r['id']), 'Xe hoặc lịch không còn hợp lệ.', 409)
         db.execute('UPDATE orders SET paid=?, expires=NULL WHERE id=?', (q['deposit'], r['id']))
-        new_status, message = 'CONFIRMED', 'Đã ghi nhận khoản giữ chỗ MÔ PHỎNG; không có giao dịch tiền thật.'
+        new_status, message = 'CONFIRMED', 'Đã ghi nhận khoản giữ chỗ do nhân viên đối chiếu.'
     elif action == 'cancel':
         need(status in ('REQUESTED','QUOTED','AWAITING_PAYMENT','CONFIRMED'), 'Không thể hủy ở trạng thái này.', 409)
         need(now < r['start'] or admin, 'Đã đến giờ nhận. Liên hệ quản trị để xử lý.')
@@ -327,9 +338,9 @@ def apply_action(db, r, user, data):
         new_status, message = 'REJECTED', 'Không thể đáp ứng: '+reason
     elif action == 'refund':
         need(admin and status == 'CANCELLED', 'Chỉ quản trị xử lý hoàn đơn đã hủy.', 403)
-        need(r['refund_due'] > 0 and data.get('demo_confirm') is True, 'Không có khoản chờ hoàn hoặc chưa xác nhận mô phỏng.')
+        need(r['refund_due'] > 0 and data.get('demo_confirm') is True, 'Không có khoản chờ hoàn hoặc chưa xác nhận đối chiếu.')
         db.execute('UPDATE orders SET refunded=refunded+refund_due,refund_due=0 WHERE id=?', (r['id'],))
-        message = 'Đã đối soát hoàn khoản giữ chỗ MÔ PHỎNG.'
+        message = 'Đã ghi nhận đối soát hoàn khoản giữ chỗ.'
     elif action in ('handover','return'):
         need(admin, 'Chỉ quản trị ghi nhận bàn giao.', 403)
         need(status == ('CONFIRMED' if action == 'handover' else 'RENTING'), 'Trạng thái không phù hợp.', 409)
@@ -337,15 +348,15 @@ def apply_action(db, r, user, data):
         report = {'odometer':integer(data.get('odometer'),0,3000000), 'fuel':integer(data.get('fuel'),0,100),
                   'condition':text(data.get('condition', ''),2000), 'at':now,
                   'acknowledged': data.get('acknowledged') is True, 'demo':True}
-        need(len(report['condition']) >= 5 and report['acknowledged'], 'Cần mô tả tình trạng và xác nhận hai bên đã đối chiếu trong kịch bản demo.')
+        need(len(report['condition']) >= 5 and report['acknowledged'], 'Cần mô tả tình trạng và xác nhận hai bên đã đối chiếu.')
         if action == 'handover':
             need(available(db,r['vehicle_id'],r['start'],r['end'],r['id']), 'Xe chưa được trả hoặc chưa sẵn sàng bàn giao. Quản trị cần xử lý lịch xung đột.',409)
             need(data.get('documents_checked') is True, 'Cần kiểm tra giấy tờ trước khi giao xe.')
             report['documents_checked'] = True
             report['remaining_paid_demo'] = q['remaining']
             report['security_received_demo'] = q['security_deposit']
-            need(data.get('money_checked') is True, 'Cần xác nhận tiền thuê còn lại và tiền bảo đảm mô phỏng.')
-            new_status, message = 'RENTING', 'Đã lập biên bản nhận xe và ghi nhận tiền thuê còn lại, tiền bảo đảm MÔ PHỎNG.'
+            need(data.get('money_checked') is True, 'Cần xác nhận tiền thuê còn lại và tiền bảo đảm đã nhận.')
+            new_status, message = 'RENTING', 'Đã lập biên bản nhận xe và ghi nhận tiền thuê còn lại, tiền bảo đảm theo xác nhận của nhân viên.'
         else:
             old = json.loads(db.execute("SELECT data FROM reports WHERE order_id=? AND kind='handover'", (r['id'],)).fetchone()['data'])
             need(report['odometer'] >= old['odometer'], 'Số km trả phải không nhỏ hơn số km nhận.')
@@ -366,10 +377,10 @@ def apply_action(db, r, user, data):
     elif action == 'settle':
         need(admin and status == 'COMPLETED', 'Không có quyền đối soát trạng thái này.', 403)
         report = json.loads(db.execute("SELECT data FROM reports WHERE order_id=? AND kind='return'", (r['id'],)).fetchone()['data'])
-        need(not report['settled'] and data.get('demo_confirm') is True, 'Đã đối soát hoặc chưa xác nhận mô phỏng.')
+        need(not report['settled'] and data.get('demo_confirm') is True, 'Đã đối soát hoặc chưa xác nhận đối chiếu.')
         report['settled'], report['settled_at'] = True, now
         db.execute("UPDATE reports SET data=? WHERE order_id=? AND kind='return'", (json.dumps(report,ensure_ascii=False),r['id']))
-        message = 'Đã đối soát tiền bảo đảm và phụ phí MÔ PHỎNG, hoàn tất đơn.'
+        message = 'Đã ghi nhận đối soát tiền bảo đảm và phụ phí, hoàn tất đơn.'
     else:
         raise Problem('Thao tác không hợp lệ.')
     db.execute('UPDATE orders SET status=?,version=version+1,updated=? WHERE id=?', (new_status, now, r['id']))
@@ -464,6 +475,9 @@ class Handler(BaseHTTPRequestHandler):
             user = self.session(db)
             return {'user':{k:user[k] for k in ['id','name','email','role']} if user else None,
                     'csrf':user['csrf'] if user else None, 'demo':True}
+        if path == '/api/contact-info':
+            return {key: os.environ.get(env, '').strip() for key,env in
+                    [('phone','CARVIA_CONTACT_PHONE'),('email','CARVIA_CONTACT_EMAIL'),('address','CARVIA_CONTACT_ADDRESS')]}
         if path == '/api/policy':
             return POLICY
         if path == '/api/vehicles':
@@ -492,11 +506,29 @@ class Handler(BaseHTTPRequestHandler):
             need(user['role']=='admin','Không có quyền quản trị.',403)
             return {'orders':[order_json(db,r) for r in db.execute('SELECT * FROM orders ORDER BY created DESC')],
                     'vehicles':[dict(r) for r in db.execute('SELECT * FROM vehicles ORDER BY id')],
-                    'blocks':[dict(r) for r in db.execute('SELECT * FROM blocks ORDER BY start')]}
+                    'blocks':[dict(r) for r in db.execute('SELECT * FROM blocks ORDER BY start')],
+                    'contacts':[dict(r) for r in db.execute('SELECT id,name,email,message,created FROM contact_requests ORDER BY created DESC LIMIT 100')]}
         raise Problem('Không tìm thấy API.',404)
 
     def post_api(self, db, data):
         path = urlsplit(self.path).path
+        if path == '/api/contact':
+            name = text(data.get('name',''),80)
+            address = email(data.get('email',''))
+            message = text(data.get('message',''),2000)
+            request_key = text(data.get('request_key',''),80)
+            need(len(name)>=2 and len(message)>=10,'Nhập họ tên từ 2 ký tự và nội dung từ 10 ký tự.')
+            need(re.fullmatch(r'[a-zA-Z0-9-]{16,80}',request_key),'Mã yêu cầu không hợp lệ.')
+            sender = hashlib.sha256(self.client_address[0].encode()).hexdigest()
+            existing = db.execute('SELECT id FROM contact_requests WHERE sender_hash=? AND request_key=?',(sender,request_key)).fetchone()
+            if existing:
+                return {'id':existing['id']},None
+            count = db.execute('SELECT COUNT(*) FROM contact_requests WHERE sender_hash=? AND created>?',(sender,time.time()-900)).fetchone()[0]
+            need(count < 5,'Bạn đã gửi nhiều yêu cầu. Vui lòng thử lại sau 15 phút.',429)
+            request_id = str(uuid.uuid4())
+            db.execute('INSERT INTO contact_requests VALUES(?,?,?,?,?,?,?)',
+                       (request_id,name,address,message,time.time(),sender,request_key))
+            return {'id':request_id},None
         if path in ('/api/login','/api/register'):
             address = email(data.get('email',''))
             pw = text(data.get('password',''),200)
@@ -546,7 +578,7 @@ class Handler(BaseHTTPRequestHandler):
             old = db.execute('SELECT * FROM orders WHERE owner=? AND request_key=?',(user['id'],key)).fetchone()
             if old:
                 return order_json(db,old),None
-            need(data.get('agree') is True,'Cần đồng ý gửi yêu cầu và điều kiện demo.')
+            need(data.get('agree') is True,'Cần đồng ý gửi yêu cầu và điều kiện thuê xe.')
             name = text(data.get('name',''),80)
             need(len(name)>=2,'Nhập họ tên hợp lệ.')
             p = {'name':name,'phone':phone(data.get('phone','')),'email':email(data.get('email','')),
@@ -669,6 +701,6 @@ if __name__ == '__main__':
             raise SystemExit(e.message)
     else:
         origin = PUBLIC_ORIGIN or f'http://localhost:{args.port}'
-        print(f'CARVIA demo: {origin} — Ctrl+C để dừng.', flush=True)
+        print(f'CARVIA: {origin} — Ctrl+C để dừng.', flush=True)
         bind = '0.0.0.0' if PUBLIC_ORIGIN else '127.0.0.1'
         ThreadingHTTPServer((bind,args.port),Handler).serve_forever()
