@@ -4,10 +4,11 @@
   const $ = (q) => document.querySelector(q);
   const cleanLabel = (s) => String(s ?? "").replace(/\s*·\s*xe mô phỏng\s*\d+/gi, "").replace(/Điểm nhận thử nghiệm TP\. Hồ Chí Minh/gi, "Điểm nhận xe CARVIA tại TP. Hồ Chí Minh").replace(/DEMO-(\d+)/g, "CV-$1");
   const E = (s) =>
-    cleanLabel(s).replace(
+    String(s ?? "").replace(
       /[&<>"']/g,
       (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c],
     );
+  const L = (s) => E(cleanLabel(s));
   const M = (n) =>
     new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -168,7 +169,7 @@
     const pickupTotal = pickupRent + q.security_deposit;
     return `<section class="panel flow-money" aria-label="Chi tiết chi phí thuê xe">
       <div class="eyebrow">${final ? "CHI PHÍ ĐÃ XÁC NHẬN" : "CHI TIẾT CHI PHÍ"}</div>
-      <h3>${E(q.vehicle_label)}</h3>
+      <h3>${L(q.vehicle_label)}</h3>
       <p class="fine muted">${dateText(q.start)} → ${dateText(q.end)} · Giờ Việt Nam</p>
       <div class="cost-breakdown">
         <div class="row"><span>Tiền thuê xe<small>${M(q.daily_price)} × ${q.days} ngày</small></span><strong>${M(q.base)}</strong></div>
@@ -199,7 +200,7 @@
     return vehicles
       .map(
         (v) =>
-          `<option value="${E(v.id)}" ${v.id === current ? "selected" : ""} ${!v.available ? "disabled" : ""}>${E(v.label)} — ${v.available ? M(v.daily_price) + "/ngày" : "Không khả dụng / chưa có giá"}</option>`,
+          `<option value="${E(v.id)}" ${v.id === current ? "selected" : ""} ${!v.available ? "disabled" : ""}>${L(v.label)} — ${v.available ? M(v.daily_price) + "/ngày" : "Không khả dụng / chưa có giá"}</option>`,
       )
       .join("");
   }
@@ -300,6 +301,11 @@
       return;
     }
     const all = await api("vehicles");
+    // Recover drafts saved by the previous UI with a display-only CV code.
+    if (!all.vehicles.some((v) => v.id === d.vehicle_id)) {
+      const originalId = String(d.vehicle_id).replace(/^CV-(\d+)$/, "DEMO-$1");
+      if (all.vehicles.some((v) => v.id === originalId)) d.vehicle_id = originalId;
+    }
     shell(
       "Hoàn tất đặt xe",
       "Kiểm tra lịch, nhập liên hệ và xem tổng tiền. Xe trống được xác nhận ngay sau khi đặt.",
@@ -417,7 +423,7 @@
   function orderCard(o, admin = false) {
     const c = model(o.quote?.model_id || modelIdFromOrder(o));
     return `<article class="panel order-card"><div class="order-top"><span class="status status-${o.status}">${E(o.status_label)}</span><span class="fine muted">${dateText(o.created)}</span></div>
-    <h3>${E(o.quote?.vehicle_label || c?.name || o.vehicle_id)}</h3><p class="fine">${dateText(o.start)} → ${dateText(o.end)}</p><p class="fine muted">Mã ${E(shortId(o.id))}</p>
+    <h3>${L(o.quote?.vehicle_label || c?.name || o.vehicle_id)}</h3><p class="fine">${dateText(o.start)} → ${dateText(o.end)}</p><p class="fine muted">Mã ${E(shortId(o.id))}</p>
     <div class="row"><strong>${o.quote ? M(o.quote.total) : "Chưa có báo giá"}</strong><a class="btn outline small" href="success.html?id=${E(o.id)}${admin ? "&admin=1" : ""}">Xem chi tiết</a></div>
     ${o.refund_due ? `<p class="notice">Chờ hoàn giữ chỗ: ${M(o.refund_due)}</p>` : ""}</article>`;
   }
@@ -496,7 +502,7 @@
         "quote",
         "Kiểm tra và lập báo giá",
         `
-      <p>Xe ${E(o.vehicle_id)} · ${E(v?.label)}. Máy chủ kiểm tra lại lịch và giá ngay khi lập báo giá.</p><label class="check"><input type="checkbox" name="contact_checked" required><span>Đã kiểm tra thông tin liên hệ / địa chỉ. Không phải xác minh OTP tự động.</span></label>
+      <p>Xe ${L(o.vehicle_id)} · ${L(v?.label)}. Máy chủ kiểm tra lại lịch và giá ngay khi lập báo giá.</p><label class="check"><input type="checkbox" name="contact_checked" required><span>Đã kiểm tra thông tin liên hệ / địa chỉ. Không phải xác minh OTP tự động.</span></label>
       <div class="field"><label for="insurance">Phạm vi bảo hiểm / mức tự chịu / loại trừ</label><textarea name="insurance" id="insurance" required minlength="15" maxlength="1000" placeholder="Ghi phạm vi bảo hiểm, mức miễn thường và trường hợp loại trừ theo hồ sơ xe."></textarea></div>`,
         "Gửi báo giá và giữ xe 30 phút",
       );
@@ -643,8 +649,8 @@
         .join("")}</select></div><div id="admin-orders" class="order-list"></div>
       <section id="fleet" class="section"><h2>Xe và đơn giá thuê</h2><p>Giá cập nhật áp dụng cho báo giá mới. Không thay đổi báo giá đã chốt. Tắt xe ngăn nhận lịch mới; cần xử lý riêng các đơn đã xác nhận.</p>
       <div class="fleet-list">${result.vehicles.map((v) => `<form class="panel vehicle-form" data-id="${E(v.id)}"><div><strong>${E(v.id)}</strong><span class="fine muted"> · ${E(v.gear)}</span></div><label>Tên phiên bản / chiếc xe<input name="label" required minlength="5" maxlength="180" value="${E(v.label)}"></label><label>Đơn giá thuê/ngày (đ)<input type="number" name="daily_price" value="${v.daily_price ?? ""}" min="100000" max="20000000" step="1000" placeholder="Để trống nếu chưa có giá"></label><label class="check"><input name="active" type="checkbox" ${v.active ? "checked" : ""}><span>Cho phép nhận yêu cầu</span></label><button class="btn outline small">Lưu xe</button></form>`).join("")}</div></section>
-      <section class="section"><h2>Khóa lịch bảo dưỡng</h2><form id="block-form" class="panel stack"><div class="field"><label for="block-vehicle">Xe</label><select id="block-vehicle" name="vehicle_id">${result.vehicles.map((v) => `<option value="${v.id}">${E(v.label)}</option>`).join("")}</select></div>${datesFields(defaultDates(), "b-")}${field("Lý do khóa lịch", "reason", "", "text", 'required minlength="3" maxlength="250"')}<button class="btn dark">Thêm lịch bảo dưỡng</button></form>
-      <div class="stack">${result.blocks.map((b) => `<div class="panel row"><div><strong>${E(b.vehicle_id)} · ${E(b.reason)}</strong><p>${dateText(b.start)} → ${dateText(b.end)}</p></div><button class="btn outline small unblock" data-id="${E(b.id)}">Bỏ khóa</button></div>`).join("")}</div></section>`,
+      <section class="section"><h2>Khóa lịch bảo dưỡng</h2><form id="block-form" class="panel stack"><div class="field"><label for="block-vehicle">Xe</label><select id="block-vehicle" name="vehicle_id">${result.vehicles.map((v) => `<option value="${v.id}">${L(v.label)}</option>`).join("")}</select></div>${datesFields(defaultDates(), "b-")}${field("Lý do khóa lịch", "reason", "", "text", 'required minlength="3" maxlength="250"')}<button class="btn dark">Thêm lịch bảo dưỡng</button></form>
+      <div class="stack">${result.blocks.map((b) => `<div class="panel row"><div><strong>${L(b.vehicle_id)} · ${E(b.reason)}</strong><p>${dateText(b.start)} → ${dateText(b.end)}</p></div><button class="btn outline small unblock" data-id="${E(b.id)}">Bỏ khóa</button></div>`).join("")}</div></section>`,
     );
     const render = () => {
       $("#admin-orders").innerHTML =
